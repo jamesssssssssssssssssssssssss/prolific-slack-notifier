@@ -101,8 +101,8 @@ def format_reward(reward_cents: int, currency: str = "USD") -> str:
     return f"{symbol}{reward_cents / 100:.2f}"
 
 
-def build_slack_blocks(study: dict, status: str) -> tuple[str, list]:
-    """Build a rich Slack notification for a study that just went ACTIVE or COMPLETED/AWAITING_REVIEW."""
+def build_slack_blocks(study: dict, status: str, previous_status: Optional[str] = None) -> tuple[str, list]:
+    """Build a rich Slack notification for a study that just went ACTIVE, RESUMED, PAUSED, or ended."""
     name = study.get("name", "Untitled Study")
     internal = study.get("internal_name", "")
     study_id = study.get("id", "unknown")
@@ -114,8 +114,13 @@ def build_slack_blocks(study: dict, status: str) -> tuple[str, list]:
     study_url = f"https://app.prolific.com/researcher/workspaces/studies/{study_id}"
 
     if status == "ACTIVE":
-        emoji, label = "🟢", "ACTIVE"
-        fallback = f"🟢 Study ACTIVE: {name} — {places_taken}/{places_total} places taken — {format_reward(reward)}/participant"
+        # Show "Resumed" when unpausing from PAUSED
+        if previous_status == "PAUSED":
+            emoji, label = "🟢", "RESUMED"
+            fallback = f"🟢 Study RESUMED: {name} — {places_taken}/{places_total} places taken — {format_reward(reward)}/participant"
+        else:
+            emoji, label = "🟢", "ACTIVE"
+            fallback = f"🟢 Study ACTIVE: {name} — {places_taken}/{places_total} places taken — {format_reward(reward)}/participant"
     elif status in ("PAUSED", "STOPPED"):
         emoji, label = "🟡", "PAUSED" if status == "PAUSED" else "STOPPED"
         fallback = f"🟡 Study {label}: {name} — {places_taken}/{places_total} places"
@@ -135,7 +140,7 @@ def build_slack_blocks(study: dict, status: str) -> tuple[str, list]:
             "type": "section",
             "fields": [
                 {"type": "mrkdwn", "text": f"*Study name:*\n{name}"},
-                {"type": "mrkdwn", "text": f"*Status:*\n`{status}`"},
+                {"type": "mrkdwn", "text": f"*Status:*\n`{status}`" + (f" (was {previous_status})" if previous_status else "")},
                 {"type": "mrkdwn", "text": f"*Reward:*\n{format_reward(reward)}/participant"},
                 {"type": "mrkdwn", "text": f"*Places:*\n{places_taken}/{places_total}"},
                 {"type": "mrkdwn", "text": f"*Submissions:*\n{submissions}"},
@@ -231,7 +236,7 @@ def main():
             log.info(f"  Notify ({current_status}): {study.get('name', study_id)} (was: {previous_status or 'unseen'})")
 
             try:
-                fallback, blocks = build_slack_blocks(study, current_status)
+                fallback, blocks = build_slack_blocks(study, current_status, previous_status)
                 send_slack_message(fallback, blocks)
                 new_active_count += 1
             except Exception as e:
