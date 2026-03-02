@@ -22,9 +22,9 @@ SLACK_WEBHOOK_URL = os.environ.get("SLACK_WEBHOOK_URL", "YOUR_SLACK_WEBHOOK_URL_
 # Where to store seen study IDs (persists between runs)
 STATE_FILE = Path(__file__).parent / ".prolific_seen_studies.json"
 
-# Notify when study goes live (ACTIVE), is paused/stopped (PAUSED, STOPPED), or ends (AWAITING REVIEW)
-# API returns "AWAITING REVIEW" with a space, not underscore
-NOTIFY_STATUSES = {"ACTIVE", "AWAITING_REVIEW", "AWAITING REVIEW", "PAUSED", "STOPPED"}
+# Notify when study goes live (ACTIVE), is paused (PAUSED), or ends (AWAITING REVIEW)
+# API returns "AWAITING REVIEW" with a space. No STOPPED status in API - stopping goes to AWAITING REVIEW.
+NOTIFY_STATUSES = {"ACTIVE", "AWAITING_REVIEW", "AWAITING REVIEW", "PAUSED"}
 
 # Prolific API base
 PROLIFIC_API_BASE = "https://api.prolific.com/api/v1"
@@ -121,9 +121,9 @@ def build_slack_blocks(study: dict, status: str, previous_status: Optional[str] 
         else:
             emoji, label = "🟢", "ACTIVE"
             fallback = f"🟢 Study ACTIVE: {name} — {places_taken}/{places_total} places taken — {format_reward(reward)}/participant"
-    elif status in ("PAUSED", "STOPPED"):
-        emoji, label = "🟡", "PAUSED" if status == "PAUSED" else "STOPPED"
-        fallback = f"🟡 Study {label}: {name} — {places_taken}/{places_total} places"
+    elif status == "PAUSED":
+        emoji, label = "🟡", "PAUSED"
+        fallback = f"🟡 Study PAUSED: {name} — {places_taken}/{places_total} places"
     else:
         # status may be "AWAITING REVIEW" (API) or "AWAITING_REVIEW" or COMPLETED
         emoji, label = "🔴", "ENDED" if status == "COMPLETED" else "AWAITING REVIEW"
@@ -142,8 +142,8 @@ def build_slack_blocks(study: dict, status: str, previous_status: Optional[str] 
                 {"type": "mrkdwn", "text": f"*Study name:*\n{name}"},
                 {"type": "mrkdwn", "text": f"*Status:*\n`{status}`" + (f" (was {previous_status})" if previous_status else "")},
                 {"type": "mrkdwn", "text": f"*Reward:*\n{format_reward(reward)}/participant"},
-                {"type": "mrkdwn", "text": f"*Places:*\n{places_taken}/{places_total}"},
-                {"type": "mrkdwn", "text": f"*Submissions:*\n{submissions}"},
+                {"type": "mrkdwn", "text": f"*Places filled:*\n{places_taken}/{places_total}"},
+                {"type": "mrkdwn", "text": f"*Participants who started:*\n{submissions}"},
                 {"type": "mrkdwn", "text": f"*Published:*\n{published_at or 'N/A'}"},
             ]
         },
