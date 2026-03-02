@@ -2,7 +2,7 @@
 name: Prolific Slack Notifier
 on:
   schedule:
-    - cron: "* * * * *"     # every 1 minute
+    - cron: "*/5 * * * *"   # every 5 minutes (GitHub may not run every 1 min)
   workflow_dispatch:          # allows manual "Run workflow" from GitHub UI
 permissions:
   contents: write             # so we can push state file back
