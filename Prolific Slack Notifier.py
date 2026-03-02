@@ -22,8 +22,9 @@ SLACK_WEBHOOK_URL = os.environ.get("SLACK_WEBHOOK_URL", "YOUR_SLACK_WEBHOOK_URL_
 # Where to store seen study IDs (persists between runs)
 STATE_FILE = Path(__file__).parent / ".prolific_seen_studies.json"
 
-# Notify when study goes live (ACTIVE) or when it's done (AWAITING_REVIEW = essentially finished)
-NOTIFY_STATUSES = {"ACTIVE", "AWAITING_REVIEW"}
+# Notify when study goes live (ACTIVE) or when it's done (AWAITING REVIEW = essentially finished)
+# API returns "AWAITING REVIEW" with a space, not underscore
+NOTIFY_STATUSES = {"ACTIVE", "AWAITING_REVIEW", "AWAITING REVIEW"}
 
 # Prolific API base
 PROLIFIC_API_BASE = "https://api.prolific.com/api/v1"
@@ -116,6 +117,7 @@ def build_slack_blocks(study: dict, status: str) -> tuple[str, list]:
         emoji, label = "🟢", "ACTIVE"
         fallback = f"🟢 Study ACTIVE: {name} — {places_taken}/{places_total} places taken — {format_reward(reward)}/participant"
     else:
+        # status may be "AWAITING REVIEW" (API) or "AWAITING_REVIEW"
         emoji, label = "🔴", "ENDED" if status == "COMPLETED" else "AWAITING REVIEW"
         fallback = f"🔴 Study {label}: {name} — {submissions} submissions — {places_taken}/{places_total} places"
 
