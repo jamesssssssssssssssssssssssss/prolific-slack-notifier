@@ -46,19 +46,40 @@ Add this line:
 */2 * * * * PROLIFIC_API_TOKEN="your_token" SLACK_WEBHOOK_URL="your_webhook_url" /usr/bin/python3 /path/to/prolific_slack_notifier.py >> /var/log/prolific_notifier.log 2>&1
 ```
 
-## Run 24/7 in the cloud (Mac can be off)
+## Run 24/7 with cron-job.org (simplest, free)
 
-Use **GitHub Actions** so the notifier runs every 5 minutes without your Mac:
+This runs the notifier every 5 minutes in the cloud. No Mac, no server.
 
-1. **Create a GitHub repo** and push this folder (including `.github/workflows/prolific-notifier.yml` and `Prolific Slack Notifier.py`).
+### 1. GitHub repo + secrets
 
-2. **Add secrets** in the repo: **Settings** → **Secrets and variables** → **Actions** → **New repository secret**
-   - `PROLIFIC_API_TOKEN` = your Prolific API token  
-   - `SLACK_WEBHOOK_URL` = your Slack webhook URL  
+- Push this project to a GitHub repo (include `.github/workflows/prolific-notifier.yml` and `Prolific Slack Notifier.py`).
+- In the repo: **Settings** → **Secrets and variables** → **Actions** → **New repository secret**
+  - `PROLIFIC_API_TOKEN` = your Prolific API token  
+  - `SLACK_WEBHOOK_URL` = your Slack webhook URL  
 
-3. **Enable Actions**: **Actions** tab → select "Prolific Slack Notifier" workflow → it will run on the schedule (every 5 min). You can also click **Run workflow** to test.
+### 2. GitHub token for cron-job.org
 
-State is stored in `.prolific_seen_studies.json` in the repo (the workflow commits it after each run). No server or cost.
+- GitHub → **Settings** (your profile) → **Developer settings** → **Personal access tokens** → **Tokens (classic)** → **Generate new token (classic)**.
+- Name it e.g. `cron-job-prolific`. Tick **repo** (if the repo is private) and **workflow**. Generate and copy the token.
+
+### 3. cron-job.org
+
+1. Sign up at **[cron-job.org](https://cron-job.org)** (free).
+2. **Create cron job**:
+   - **Title:** `Prolific notifier`
+   - **Address (URL):**  
+     `https://api.github.com/repos/jamesssssssssssssssssssssss/prolific-slack-notifier/actions/workflows/prolific-notifier.yml/dispatches`  
+     *(Change the username/repo if yours is different.)*
+   - **Schedule:** Every **5** **minutes**
+   - **Request method:** **POST**
+   - **Request headers:** Add these three (cron-job.org usually has an “Advanced” or “Headers” section):
+     - `Authorization` = `Bearer PASTE_YOUR_GITHUB_TOKEN_HERE`
+     - `Accept` = `application/vnd.github.v3+json`
+     - `Content-Type` = `application/json`
+   - **Request body:** `{"ref":"main"}`
+3. **Save.** The job will trigger your GitHub workflow every 5 minutes.
+
+Done. You can confirm in the repo’s **Actions** tab that runs appear every 5 minutes.
 
 ---
 

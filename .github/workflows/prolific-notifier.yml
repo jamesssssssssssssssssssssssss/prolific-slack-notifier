@@ -1,11 +1,9 @@
-# Prolific → Slack notifier: runs every 5 minutes in the cloud (no Mac needed)
+# Prolific → Slack notifier: triggered every 5 min by cron-job.org (no Mac needed)
 name: Prolific Slack Notifier
 on:
-  schedule:
-    - cron: "*/5 * * * *"   # every 5 minutes (GitHub may not run every 1 min)
-  workflow_dispatch:          # allows manual "Run workflow" from GitHub UI
+  workflow_dispatch:   # triggered by cron-job.org every 5 min (or manually from Actions tab)
 permissions:
-  contents: write             # so we can push state file back
+  contents: write
 jobs:
   run-notifier:
     runs-on: ubuntu-latest
